@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<script type="text/javascript" src="static/js/echarts.js"></script>
+	<script type="text/javascript" src="static/js/jquery.min.js"></script>
+	<script type="text/javascript" src="static/js/vintage.js"></script>
+	<title>Elk - Monitor</title>
+</head>
+
+<body>
+	<div id="main" style="width: 100%;height:800px;"></div>
+	<script type="text/javascript">
+        var dom = document.getElementById("main");
+        var myChart = echarts.init(dom, 'vintage');
+        var app = {};
+        option = null;
+        option = {
+            title: {
+                text: 'elk监测',
+                subtext: '因催丝挺'
+            },
+            tooltip: {
+                trigger: 'axis'
+            },
+            legend: {
+                data: ["总数", "失败数"]
+            },
+            xAxis: [{
+                type: 'category',
+                boundaryGap: true,
+                data: (function() {
+                    var now = new Date();
+                    var res = [];
+                    var len = 10;
+                    while (len--) {
+                        res.unshift(now.toLocaleTimeString().replace(/^\D*/, ''));
+                        now = new Date(now - 2000);
+                    }
+                    return res;
+                })()
+            }],
+            yAxis: [{
+                type: 'value',
+                name: 'total',
+                max: 'dataMax'
+            }, {
+                type: 'value',
+                name: 'fail',
+                max: 'dataMax'
+            }],
+            toolbox: {
+                show: true,
+                feature: {
+                    mark: {
+                        show: true
+                    },
+                    dataView: {
+                        show: true,
+                        readOnly: false
+                    },
+                    magicType: {
+                        show: true,
+                        type: ['bar', 'stack', 'tiled']
+                    },
+                    restore: {
+                        show: true
+                    },
+                    saveAsImage: {
+                        show: true
+                    }
+                }
+            },
+            calculable: true,
+            series: [{
+                type: "line",
+                name: "总数",
+                itemStyle: {
+                    normal: {
+                        lineStyle: {
+                            color: '#AE0000'
+                        }
+                    }
+                },
+                // itemStyle: {normal: {areaStyle: {type: 'default'}}},
+                smooth: true,
+                data: (function() {
+                    var res = [];
+                    var len = 10;
+                    while (len--) {
+                        res.push(Math.round(Math.random() * 1000));
+                    }
+                    return res;
+                })(),
+                markPoint: {
+                    data: [{
+                        type: 'max',
+                        name: '最大值'
+                    }, {
+                        type: 'min',
+                        name: '最小值'
+                    }]
+                },
+            }, {
+                type: "line",
+                name: "失败数",
+                yAxisIndex: 1,
+                smooth: true,
+                itemStyle: {
+                    normal: {
+                        lineStyle: {
+                            color: '#6C6C6C'
+                        }
+                    }
+                },
+                //itemStyle: {normal: {areaStyle: {type: 'default'}}},//堆面积
+                data: (function() {
+                    var res = [];
+                    var len = 10;
+                    while (len--) {
+                        res.push(Math.round(Math.random() * 1000));
+                    }
+                    return res;
+                })(),
+                markPoint: {
+                    data: [{
+                        type: 'max',
+                        name: '最大值'
+                    }, {
+                        type: 'min',
+                        name: '最小值'
+                    }]
+                },
+            }]
+        };
+
+        myChart.setOption(option)
+            //clearInterval(app.timeTicket);
+        app.timeTicket = setInterval(function() {
+            requestata()
+        }, 5000 * 60);;
+
+        function requestata() {
+            $.ajax({
+                type: "post",
+                async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
+                url: "http://127.0.0.1:8889/elk_monitor/data", //请求发送到TestServlet处
+                data: {},
+                dataType: "json", //返回数据形式为json
+                success: function(result) {
+                    if (result) {
+                        var data0 = option.series[0].data;
+                        var data1 = option.series[1].data;
+                        data1.shift();
+                        data1.push(result.value[1]);
+                        data0.shift();
+                        data0.push(result.value[0]);
+
+
+                        option.xAxis[0].data.shift();
+                        option.xAxis[0].data.push(result.time);
+
+                        myChart.setOption(option);
+                    }
+                },
+                error: function(errorMsg) {
+                    //请求失败时执行该函数
+                    alert("图表请求数据失败!");
+
+                }
+            })
+        }
+    </script>
+</body>
+
+</html>
