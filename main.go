@@ -77,11 +77,12 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	log.SetFlags(log.Lshortfile | log.Ltime)
 	err := lib.StartMongo("mongodb://" + *Url + "/")
 	if err != nil {
 		os.Exit(-1)
 	}
+	log.Println("[INFO]START.........................")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.HandleFunc("/elk_monitor/data", elk_monitor)
 	http.HandleFunc("/index", index)

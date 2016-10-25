@@ -16,8 +16,8 @@ import (
 
 //Mongo存储结构
 type Elk struct {
-	time int64
-	data string
+	Time int64
+	Data string
 }
 
 //请求
@@ -115,7 +115,7 @@ func ComposeQuery(f bool, start, end string) string {
 
 	body, err := json.Marshal(p)
 	if err != nil {
-		log.Printf("[error]query is error:%s", err)
+		log.Printf("[ERROR]query is error:%s", err)
 		return ""
 	}
 	return string(body)
@@ -123,18 +123,23 @@ func ComposeQuery(f bool, start, end string) string {
 
 //获取总数
 func GetTotal(f bool, start, end string) (string, float64) {
+	log.Printf("[DEBUG]start - %s,end - %s", start, end)
 	query := ComposeQuery(f, start, end)
 	resp, err := Request(OrderURL, "POST", query)
 	if err != nil {
+		log.Printf("[ERROR]Request is erorr:%s", err)
 		return start, 0
 	}
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("[ERROR]Resp body read  erorr:%s", err)
 		return start, 0
 	}
+	log.Printf("[DEBUG]resp : %s", string(b))
 	SaveResult(b)
 	t, value, err := GetTotalAndTime(b)
 	if err != nil {
+		log.Printf("[ERROR]result is error:%s", err)
 		return start, 0
 	}
 	return t, value
@@ -143,9 +148,10 @@ func GetTotal(f bool, start, end string) (string, float64) {
 //保存数据
 func SaveResult(body []byte) {
 	m := lib.Mongo.Clone()
-	var e Elk
-	e.time = time.Now().Unix()
-	e.data = string(body)
+
+	e := Elk{}
+	e.Time = time.Now().Unix()
+	e.Data = string(body)
 	err := m.DB(*DB).C(*Collection).Insert(e)
 	if err != nil {
 		log.Printf("[ERROR]数据保存出错:%s", err)
