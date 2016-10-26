@@ -124,7 +124,7 @@ func ComposeQuery(f bool, start, end string) string {
 
 //获取总数
 func GetTotal(f bool, start, end string) (string, float64) {
-	log.Printf("[DEBUG]start - %s,end - %s", start, end)
+	//log.Printf("[DEBUG]start - %s,end - %s", start, end)
 	query := ComposeQuery(f, start, end)
 	resp, err := Request(OrderURL, "POST", query)
 	if err != nil {
@@ -136,7 +136,7 @@ func GetTotal(f bool, start, end string) (string, float64) {
 		log.Printf("[ERROR]Resp body read  erorr:%s", err)
 		return start, 0
 	}
-	log.Printf("[DEBUG]resp : %s", string(b))
+	//log.Printf("[DEBUG]resp : %s", string(b))
 	SaveResult(b)
 	t, value, err := GetTotalAndTime(b)
 	if err != nil {

@@ -7,10 +7,11 @@ import (
 	"os"
 	"time"
 
+	"net/http"
+
 	"git.ishopex.cn/matrix/gatling/lib"
 )
 
-import "net/http"
 import "html/template"
 
 var (
@@ -21,6 +22,7 @@ var (
 	Url        = flag.String("mgo", "localhost:27017", "mgourl like : 127.0.0.1:27017")
 	DB         = flag.String("db", "elk", "mgo db name")
 	Collection = flag.String("c", "record", "mgo collection")
+	l          = flag.String("log", "running.log", "logfile")
 	LastTime   string
 	FORMATTIME = "2006-01-02T15:04:05.000Z"
 )
@@ -77,8 +79,14 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+	fw, err := os.OpenFile(*l, os.O_CREATE|os.O_RDWR, 0664)
+	if err != nil {
+		log.Printf("[ERROR]logfile open error:%s", err)
+		os.Exit(-1)
+	}
+	log.SetOutput(fw)
 	log.SetFlags(log.Lshortfile | log.Ltime)
-	err := lib.StartMongo("mongodb://" + *Url + "/")
+	err = lib.StartMongo("mongodb://" + *Url + "/")
 	if err != nil {
 		os.Exit(-1)
 	}
