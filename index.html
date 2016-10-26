@@ -19,7 +19,7 @@
         option = {
             title: {
                 text: 'elk监测',
-                subtext: '因催丝挺'
+                subtext: '5分钟刷新'
             },
             tooltip: {
                 trigger: 'axis'
@@ -33,7 +33,7 @@
                 data: (function() {
                     var now = new Date();
                     var res = [];
-                    var len = 10;
+                    var len = 15;
                     while (len--) {
                         res.unshift(now.toLocaleTimeString().replace(/^\D*/, ''));
                         now = new Date(now - 2000);
@@ -87,7 +87,7 @@
                 smooth: true,
                 data: (function() {
                     var res = [];
-                    var len = 10;
+                    var len = 15;
                     while (len--) {
                         res.push(Math.round(Math.random() * 1000));
                     }
@@ -117,7 +117,7 @@
                 //itemStyle: {normal: {areaStyle: {type: 'default'}}},//堆面积
                 data: (function() {
                     var res = [];
-                    var len = 10;
+                    var len = 15;
                     while (len--) {
                         res.push(Math.round(Math.random() * 1000));
                     }
@@ -139,7 +139,7 @@
             //clearInterval(app.timeTicket);
         app.timeTicket = setInterval(function() {
             requestata()
-        }, 5000 * 6);;
+        }, 5000 * 60);;
 
         function requestata() {
             $.ajax({

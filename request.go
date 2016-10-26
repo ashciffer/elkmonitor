@@ -38,17 +38,17 @@ func Request(url string, method, params string) (*http.Response, error) {
 }
 
 //拆分数据
-func GetTotalAndTime(data []byte) (string, float64, error) {
+func GetTotalAndTime(data []byte) (time string, total float64, err error) {
 	var (
-		d   map[string]interface{}
-		err error
+		d map[string]interface{}
 	)
 
-	defer func(err *error) {
+	defer func(err *error, t float64, ti string) {
 		if rec := recover(); rec != nil {
 			*err = errors.New(fmt.Sprintf("%s", rec))
+
 		}
-	}(&err)
+	}(&err, total, time)
 
 	err = json.Unmarshal(data, &d)
 	if err != nil {
@@ -56,8 +56,9 @@ func GetTotalAndTime(data []byte) (string, float64, error) {
 	}
 
 	hits := d["hits"].(map[string]interface{})
-	total := hits["total"].(float64)
-	time := hits["hits"].([]interface{})[0].(map[string]interface{})["@timestamp"].(string)
+	total = hits["total"].(float64)
+	time = hits["hits"].([]interface{})[0].(map[string]interface{})["_source"].(map[string]interface{})["@timestamp"].(string)
+
 	return time, total, err
 }
 

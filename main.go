@@ -42,9 +42,9 @@ type Sec struct {
 }
 
 func elk_monitor(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
+	now := time.Now().UTC()
 	if LastTime == "" {
-		LastTime = time.Unix(now.Unix()-5*60, 0).Format(FORMATTIME)
+		LastTime = time.Unix(now.Unix()-5*60, 0).UTC().Format(FORMATTIME)
 	}
 
 	var (
@@ -54,9 +54,9 @@ func elk_monitor(w http.ResponseWriter, r *http.Request) {
 		fail  float64
 	)
 
-	s.Time = now.Format("15:04:05")
-	_, total = GetTotal(false, LastTime, now.Format(FORMATTIME))
-	start, fail = GetTotal(true, LastTime, now.Format(FORMATTIME))
+	s.Time = time.Now().Format("15:04:05")
+	_, total = GetTotal(true, LastTime, now.Format(FORMATTIME))
+	start, fail = GetTotal(false, LastTime, now.Format(FORMATTIME))
 	s.Value = []float64{total, fail}
 	LastTime = start
 	body, err := json.Marshal(s)
