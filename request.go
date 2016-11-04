@@ -155,18 +155,19 @@ func QueryData() ([]Series, error) {
 	e := []Series{}
 	m := lib.Mongo.Clone()
 	err := m.DB(*DB).C(*Collection).Find(nil).Sort("-_id").Limit(12).All(&e)
-	var i int
+	var k int
 	var succ []Series
 	var Re   []Series
 	for _, v := range e {
-		if v.Value == nil {
-			v.Time = "00:00:" + strconv.Itoa(i)
-			v.Value = []float64{0, 0}
-			i++
-			Re = append(Re, v)
-		} else {
+		if v.Value != nil {
 			succ = append(succ, v)
 		}
+	}
+
+	for i := 0;i<(12-len(succ));i++{
+		tmp := Series{Time:"00:00:"+strconv.Itoa(k),Value:[]float64{0,0}}
+		Re = append(Re,tmp)
+		k++
 	}
 
 	for n := len(succ); n > 0; n-- {
@@ -177,9 +178,28 @@ func QueryData() ([]Series, error) {
 
 func QueryRpcData(col string) ([]RpcSeries, error) {
 	e := []RpcSeries{}
+	var re []RpcSeries
+
 	m := lib.Mongo.Clone()
 	err := m.DB(*DB).C(col).Find(nil).Limit(12).Sort("-_id").All(&e)
-	return e, err
+	var succ []RpcSeries
+	for _, v := range e {
+		if v.Value != nil {
+			succ = append(succ, v)
+		}
+	}
+	re =append(re,succ...)
+
+	tmp_result := RpcResult{
+		Key:"total",
+		Count:0,
+	}
+
+	for i := (12-len(succ));i>0;i--{
+		tmp := RpcSeries{Time:"2006 00:00:"+strconv.Itoa(i),Value:[]RpcResult{tmp_result}}
+		re = append(re,tmp)
+	}
+	return re, err
 }
 
 //返回值{FORMATTIME,[total,fail]}
