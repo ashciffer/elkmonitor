@@ -50,15 +50,7 @@
                             return res;
                         })()
                     }],
-                    yAxis: [{
-                        type: 'value',
-                        name: 'total',
-                        max: 'dataMax'
-                    }, {
-                        type: 'value',
-                        name: 'fail',
-                        max: 'dataMax'
-                    }],
+                    yAxis: [],
                     toolbox: {
                         show: true,
                         feature: {
@@ -98,7 +90,7 @@
                             var res = [];
                             var len = 12;
                             while (len--){
-                                res.push(result[11-len].value[0]);
+                                res.push(result[11-len].value[1]);
                             }
                             return res;
                         })(),
@@ -128,7 +120,7 @@
                             var res = [];
                             var len = 12;
                             while (len--) {
-                                res.push(result[11-len].value[1]);
+                                res.push(result[11-len].value[0]);
                             }
                             return res;
                         })(),
