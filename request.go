@@ -14,11 +14,6 @@ import (
 	"git.ishopex.cn/matrix/gatling/lib"
 )
 
-//Mongo存储结构
-type Elk struct {
-	Time int64
-	Data string
-}
 
 //请求
 func Request(url string, method, params string) (*http.Response, error) {
@@ -123,10 +118,10 @@ func ComposeQuery(f bool, start, end string) string {
 }
 
 //获取总数
-func GetTotal(f bool, start, end string) (string, float64) {
+func GetTotal(uri string, f bool, start, end string) (string, float64) {
 	//log.Printf("[DEBUG]start - %s,end - %s", start, end)
 	query := ComposeQuery(f, start, end)
-	resp, err := Request(OrderURL, "POST", query)
+	resp, err := Request(uri, "POST", query)
 	if err != nil {
 		log.Printf("[ERROR]Request is erorr:%s", err)
 		return start, 0
@@ -137,7 +132,6 @@ func GetTotal(f bool, start, end string) (string, float64) {
 		return start, 0
 	}
 	//log.Printf("[DEBUG]resp : %s", string(b))
-	SaveResult(b)
 	t, value, err := GetTotalAndTime(b)
 	if err != nil {
 		log.Printf("[ERROR]result is error:%s", err)
@@ -146,15 +140,55 @@ func GetTotal(f bool, start, end string) (string, float64) {
 	return t, value
 }
 
-//保存数据
-func SaveResult(body []byte) {
-	m := lib.Mongo.Clone()
 
-	e := Elk{}
-	e.Time = time.Now().Unix()
-	e.Data = string(body)
-	err := m.DB(*DB).C(*Collection).Insert(e)
+//保存数据
+func SaveResult(col string, e interface{}) {
+	m := lib.Mongo.Clone()
+	err := m.DB(*DB).C(col).Insert(e)
 	if err != nil {
 		log.Printf("[ERROR]数据保存出错:%s", err)
 	}
 }
+
+//取数据query()
+func QueryData() ([]Series, error) {
+	e := []Series{}
+	m := lib.Mongo.Clone()
+	err := m.DB(*DB).C(*Collection).Find(nil).Sort("-_id").Limit(12).All(&e)
+	var i int
+	var succ []Series
+	var Re   []Series
+	for _, v := range e {
+		if v.Value == nil {
+			v.Time = "00:00:" + strconv.Itoa(i)
+			v.Value = []float64{0, 0}
+			i++
+			Re = append(Re, v)
+		} else {
+			succ = append(succ, v)
+		}
+	}
+
+	for n := len(succ); n > 0; n-- {
+		Re = append(Re, succ[n - 1])
+	}
+	return Re, err
+}
+
+func QueryRpcData(col string) ([]RpcSeries, error) {
+	e := []RpcSeries{}
+	m := lib.Mongo.Clone()
+	err := m.DB(*DB).C(col).Find(nil).Limit(12).Sort("-_id").All(&e)
+	return e, err
+}
+
+//返回值{FORMATTIME,[total,fail]}
+func ComposeRes(uri, start, end string) (last_time string, res []float64) {
+	_, total := GetTotal(uri, false, start, end)
+	fail_time, fail := GetTotal(uri, true, start, end)
+	last_time = fail_time
+	res = append(res, total, fail)
+	return
+}
+
+
