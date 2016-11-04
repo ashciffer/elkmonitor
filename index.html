@@ -50,7 +50,11 @@
                             return res;
                         })()
                     }],
-                    yAxis: [],
+                    yAxis: [{
+                        type: 'value',
+                        name: 'total',
+                        max: 'dataMax'
+                    }],
                     toolbox: {
                         show: true,
                         feature: {
