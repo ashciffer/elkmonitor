@@ -5,17 +5,7 @@
     <script type="text/javascript" src="static/js/jquery.min.js"></script>
     <script type="text/javascript" src="static/js/echarts.js"></script>
     <script type="text/javascript" src="static/js/vintage.js"></script>
-    <script type="text/javascript">
-        function GetValueFromArray(s, k) {
-            de = 0.0;
-            for (i in s) {
-                if (s[i].key == k) {
-                    return s[i].doc_count
-                }
-            }
-            return de
-        }
-    </script>
+    <script type="text/javascript" src="static/js/rpc.js"></script>
     <title>上海 同步</title>
     <style type="text/css">
 
@@ -37,177 +27,17 @@
 <div class="main">
     <div id="rpc_sync" style="height: 100%;width: auto"></div>
     <script type="text/javascript">
-        var dom = document.getElementById("rpc_sync");
-        var rs = echarts.init(dom, 'vintage');
-        option = null;
-        var key_map = new Map();
-        var app = {};
-        var key_array = [];
-        rs.showLoading({
+        var shs_dom = document.getElementById("rpc_sync");
+        var shs = echarts.init(shs_dom, 'vintage');
+        shs_option = null;
+        var shs_app = {};
+        var shs_array = [];
+        var shs_map = new Map();
+        shs.showLoading({
             text: '正在努力的读取数据中...',
         });
-        function load_rpc_sync() {
-            $.ajax({
-                type: "post",
-                async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
-                url: "/rpc/realtime", //请求发送到TestServlet处
-                data: {"type": "rpc", "sync": true},
-                dataType: "json", //类型为数组
-                success: function (result) {
-                    var se = option.series
-                    series_count = se.length
-                    if (result) {
-                        option.xAxis[0].data.shift();
-                        option.xAxis[0].data.push(result.time.split(" ")[1]);
-                        //分组
-                        d = result.value
-                        for (k in d) {
-                            if (!key_map.has(d[k].key)) {
-                                key_map.set(d[k].key, d[k].key)
-                                key_array.push(d[k].key)
-                            }
-                        }
-                        for (r in key_array) {
-                            find = false;
-                            for (var i = 0; i < series_count; i++) {
-                                gvfa = GetValueFromArray(d,key_array[r])
-                                if (se[i].name == key_array[r]) {
-                                    find = true
-                                    se[i].data.shift();
-                                    se[i].data.push(gvfa);
-                                }
-                            }
-
-                            //增加一个新的线条
-                            if (!find) {
-                                newob = {
-                                    type: "line",
-                                    name: key_array[r],
-                                    data: [GetValueFromArray(d,key_array[r])]
-                                }
-                                se.push(newob)
-                            }
-                        }
-                        rs.setOption(option)
-                    }
-
-                },
-                error: function (errorMsg) {
-                    //请求失败时执行该函数
-                    alert("历史数据处理失败!");
-
-                }
-            })
-        }
-        app.timeTicket = setInterval(function () {
-            load_rpc_sync()
-        }, 5000 * 60);
-        ;
-        $.ajax({
-            type: "post",
-            async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
-            url: "/rpc/historydata", //请求发送到TestServlet处
-            data: {"type": "rpc", "sync": true},
-            dataType: "json", //类型为数组
-            success: function (result) {
-                for (i in result) {
-                    d = result[i].value
-                    for (k in d) {
-                        if (!key_map.has(d[k].key)) {
-                            key_map.set(d[k].key, d[k].key)
-                        }
-                    }
-
-                }
-                key_map.forEach(function (item, key) {
-                    key_array.push(key)
-                })
-                option = {
-                    title: {
-                        text: '上海 sync'
-                    },
-                    legend: {
-                        data: key_array
-                    },
-                    tooltip: {
-                        trigger: 'axis'
-                    },
-                    toolbox: {
-                        show: true,
-                        feature: {
-                            mark: {
-                                show: true
-                            },
-                            dataView: {
-                                show: true,
-                                readOnly: false
-                            },
-                            magicType: {
-                                show: true,
-                                type: ['bar', 'stack', 'tiled']
-                            },
-                            restore: {
-                                show: true
-                            },
-                            saveAsImage: {
-                                show: true
-                            }
-                        }
-                    },
-                    calculable: true,
-                    xAxis: [
-                        {
-                            data: (function () {
-                                var xaxis_data = [];
-                                for (i in result) {
-                                    xaxis_data.unshift(result[i].time.split(" ")[1])
-                                }
-                                return xaxis_data;
-                            })()
-                        }
-                    ],
-                    yAxis: {},
-                    series: (function () {
-                        var res = [];
-                        for (i in key_array) {
-                            res.push({
-                                type: "line",
-                                name: key_array[i],
-                                data: (function () {
-                                    var series_data = [];
-                                    for (n in result) {
-                                        flag = false;
-                                        for (k in result[n].value) {
-                                            if (result[n].value[k].key == key_array[i]) {
-                                                flag = true
-                                                series_data.unshift(result[n].value[k].doc_count)
-                                            }
-                                        }
-
-                                        if (!flag) {
-                                            series_data.unshift(0)
-                                        }
-                                    }
-                                    return series_data;
-                                })()
-                            })
-                        }
-                        return res
-                    })()
-                };
-                rs.setOption(option);
-                rs.hideLoading();
-
-            },
-            error: function (errorMsg) {
-                //请求失败时执行该函数
-                rs.showLoading()
-
-            }
-        })
+        loadrpclog(shs_app, shs, shs_option, "rpc", "true", shs_map, shs_array)
     </script>
-
 </div>
-
 </body>
 </html>

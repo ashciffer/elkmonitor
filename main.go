@@ -31,6 +31,13 @@ var (
 	STANDARDTIEM = "2006-01-02 15:04:05"
 )
 
+var (
+	ts_lt string
+	ta_lt string
+	rs_lt string
+	ra_lt string
+)
+
 type Series struct {
 	Time  string    `json:"time"`
 	Value []float64 `json:"value"`
@@ -86,48 +93,47 @@ func TaoBaoLog(ty string) {
 	SaveResult(ty, s) //保存查询数据{时间:""，data:[总数,失败数]}
 }
 
+//上海发货 数据分拣
 func Rpc(ty, flag string) {
-	var (
-		syncflag bool
-		uri string
-	)
 	if ty == "" || flag == "" {
 		log.Printf("[Crash]ajax post data is invaild ")
 		return
 	}
 
-	switch flag {
-	case "true":
-		syncflag = true
-	case "false":
+	c := ty+flag
+
+	switch c {
+	case "taobaotrue":
+		rpchandler(true,TaobaoRpcURL,c,&ta_lt)
+	case "taobaofalse":
+		rpchandler(false,TaobaoRpcURL,c,&ts_lt)
+	case "rpctrue":
+		rpchandler(true,OterPlatformURL,c,&ra_lt)
+	case "rpcfalse":
+		rpchandler(false,OterPlatformURL,c,&rs_lt)
 	default:
 		log.Printf("[Crash]ajax post data is vaild ")
 		return
 	}
+}
 
-	switch ty {
-	case "taobao":
-		uri = TaobaoRpcURL
-	case "rpc":
-		uri = OterPlatformURL
-	default:
-		log.Printf("[Crash]ajax post data is vaild ")
-		return
-	}
-
+func rpchandler(syncflag bool,uri ,col string,lasttime *string){
 	now := time.Now().UTC()
+	if *lasttime == ""{
+		*lasttime = time.Unix(now.Unix() - 5 * 60, 0).UTC().Format(FORMATTIME)
+	}
 
-	LastTime := time.Unix(now.Unix() - 5 * 60, 0).UTC().Format(FORMATTIME)
-
-	_, rr := RpcData(syncflag, uri, LastTime, now.Format(FORMATTIME))
+	t, rr := RpcData(syncflag, uri, *lasttime, now.Format(FORMATTIME))
 
 	var s RpcSeries
 
 	s.Time = time.Now().Format(STANDARDTIEM)
 	s.Value = rr
+        *lasttime = t
 
-	SaveResult(ty + flag, s) //保存数据
+	SaveResult(col, s) //保存数据
 }
+
 
 //跳转首页
 func index(w http.ResponseWriter, r *http.Request) {

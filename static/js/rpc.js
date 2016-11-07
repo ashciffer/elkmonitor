@@ -12,7 +12,7 @@ function GetValueFromArray(s, k) {
     return de
 }
 
-function loadrpclog(app, mychart, option, text, flag,key_map,key_array) {
+function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
     console.log(key_array)
     $.ajax({
         type: "post",
@@ -35,9 +35,25 @@ function loadrpclog(app, mychart, option, text, flag,key_map,key_array) {
             key_map.forEach(function (item, key) {
                 key_array.push(key)
             })
+            var ti = null;
+            switch (text+flag) {
+                case "rpctrue":
+                    ti = "上海发货同步";
+                    break;
+                case "rpcfalse":
+                    ti = "上海发货异步";
+                    break;
+                case "taobaotrue":
+                    ti = "淘宝发货同步";
+                    break;
+                case "taobaofalse":
+                    ti = "淘宝发货异步";
+                    break;
+            }
+
             option = {
                 title: {
-                    text: text + " " + flag
+                    text: ti
                 },
                 legend: {
                     data: key_array
@@ -118,12 +134,12 @@ function loadrpclog(app, mychart, option, text, flag,key_map,key_array) {
         }
     })
     app.timeTicket = setInterval(function () {
-        load_real_time(mychart, option, text, flag,key_map,key_array)
+        load_real_time(mychart, option, text, flag, key_map, key_array)
     }, 5000 * 12);
 }
 
 
-function load_real_time(mychart, option, text, flag,key_map,key_array) {
+function load_real_time(mychart, option, text, flag, key_map, key_array) {
 
     $.ajax({
         type: "post",
