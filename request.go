@@ -151,10 +151,11 @@ func SaveResult(col string, e interface{}) {
 }
 
 //取数据query()
-func QueryData() ([]Series, error) {
+func QueryData(col string) ([]Series, error) {
 	e := []Series{}
 	m := lib.Mongo.Clone()
-	err := m.DB(*DB).C(*Collection).Find(nil).Sort("-_id").Limit(12).All(&e)
+	defer  m.Close()
+	err := m.DB(*DB).C(col).Find(nil).Sort("-_id").Limit(12).All(&e)
 	var k int
 	var succ []Series
 	var Re   []Series
@@ -181,6 +182,7 @@ func QueryRpcData(col string) ([]RpcSeries, error) {
 	var re []RpcSeries
 
 	m := lib.Mongo.Clone()
+	defer  m.Close()
 	err := m.DB(*DB).C(col).Find(nil).Limit(12).Sort("-_id").All(&e)
 	var succ []RpcSeries
 	for _, v := range e {
@@ -191,7 +193,7 @@ func QueryRpcData(col string) ([]RpcSeries, error) {
 	re =append(re,succ...)
 
 	tmp_result := RpcResult{
-		Key:"total",
+		Key:"成功",
 		Count:0,
 	}
 

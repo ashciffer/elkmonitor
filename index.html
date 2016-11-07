@@ -6,190 +6,44 @@
     <script type="text/javascript" src="static/js/echarts.js"></script>
     <script type="text/javascript" src="static/js/jquery.min.js"></script>
     <script type="text/javascript" src="static/js/vintage.js"></script>
+    <script type="text/javascript" src="static/js/elk.js"></script>
     <title>Elk - Monitor</title>
+    <style type="text/css">
+
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .main {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+
+        }
+
+    </style>
 </head>
 
 <body>
-<div id="main" style="width: 100%;height:650px;"></div>
-<script type="text/javascript">
-    var dom = document.getElementById("main");
-    var myChart = echarts.init(dom, 'vintage');
-    var app = {};
-    option = null;
-    $.ajax({
-        type: "post",
-        async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
-        url: "/elk_monitor/historydata", //请求发送到TestServlet处
-        data: {},
-        dataType: "json", //类型为数组
-        success: function (result) {
-            if (result) {
-                console.log(result);
-                option = {
-                    title: {
-                        text: '淘宝监测',
-                        subtext: '5分钟刷新'
-                    },
-                    tooltip: {
-                        trigger: 'axis'
-                    },
-                    legend: {
-                        data: ["总数", "失败数"]
-                    },
-                    xAxis: [{
-                        type: 'category',
-                        boundaryGap: true,
-                        data: (function () {
-                            var now = new Date();
-                            var res = [];
-                            var len = 12;
-                            while (len--) {
-                                res.unshift(now.toLocaleTimeString().replace(/^\D*/, ''));
-                                now = new Date(now - 5000 * 60);
-                            }
-                            return res;
-                        })()
-                    }],
-                    yAxis: [{
-                        type: 'value',
-                        name: 'total',
-                        max: 'dataMax'
-                    }],
-                    toolbox: {
-                        show: true,
-                        feature: {
-                            mark: {
-                                show: true
-                            },
-                            dataView: {
-                                show: true,
-                                readOnly: false
-                            },
-                            magicType: {
-                                show: true,
-                                type: ['bar', 'stack', 'tiled']
-                            },
-                            restore: {
-                                show: true
-                            },
-                            saveAsImage: {
-                                show: true
-                            }
-                        }
-                    },
-                    calculable: true,
-                    series: [{
-                        type: "line",
-                        name: "总数",
-                        itemStyle: {
-                            normal: {
-                                lineStyle: {
-                                    color: '#AE0000'
-                                }
-                            }
-                        },
-                        // itemStyle: {normal: {areaStyle: {type: 'default'}}},
-                        smooth: true,
-                        data: (function () {
-                            var res = [];
-                            var len = 12;
-                            while (len--){
-                                res.push(result[11-len].value[1]);
-                            }
-                            return res;
-                        })(),
-                        markPoint: {
-                            data: [{
-                                type: 'max',
-                                name: '最大值'
-                            }, {
-                                type: 'min',
-                                name: '最小值'
-                            }]
-                        },
-                    }, {
-                        type: "line",
-                        name: "失败数",
-                        yAxisIndex: 1,
-                        smooth: true,
-                        itemStyle: {
-                            normal: {
-                                lineStyle: {
-                                    color: '#6C6C6C'
-                                }
-                            }
-                        },
-                        //itemStyle: {normal: {areaStyle: {type: 'default'}}},//堆面积
-                        data: (function () {
-                            var res = [];
-                            var len = 12;
-                            while (len--) {
-                                res.push(result[11-len].value[0]);
-                            }
-                            return res;
-                        })(),
-                        markPoint: {
-                            data: [{
-                                type: 'max',
-                                name: '最大值'
-                            }, {
-                                type: 'min',
-                                name: '最小值'
-                            }]
-                        },
-                    }]
-                };
-                myChart.setOption(option)
-            }
-
-        },
-        error: function (errorMsg) {
-            //请求失败时执行该函数
-            alert("老数据处理失败!");
-
-        }
-    })
-
-    //clearInterval(app.timeTicket);
-    app.timeTicket = setInterval(function () {
-        requestata()
-    }, 5000 * 60);
-    ;
-
-    //取实时数据
-    function requestata() {
-        $.ajax({
-            type: "post",
-            async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
-            url: "/elk_monitor/taobao", //请求发送到TestServlet处
-            data: {},
-            dataType: "json", //返回数据形式为json
-            success: function (result) {
-                if (result) {
-                    console.log(result.value)
-                    var data0 = option.series[0].data;
-                    var data1 = option.series[1].data;
-                    data1.shift();
-                    data1.push(result.value[1]);
-                    data0.shift();
-                    data0.push(result.value[0]);
-
-
-                    option.xAxis[0].data.shift();
-                    option.xAxis[0].data.push(result.time);
-
-                    myChart.setOption(option);
-                }
-            },
-            error: function (errorMsg) {
-                //请求失败时执行该函数
-                alert("图表请求数据失败!");
-
-            }
-        })
-    }
-
-</script>
+<div class="main">
+    <div id="tb" style="width: auto;height:400px;"></div>
+    <script type="text/javascript">
+        var t_dom = document.getElementById("tb");
+        var myChart = echarts.init(t_dom, 'vintage');
+        var app = {};
+        option = null;
+        loadoption(app, myChart, "taobao", option)
+    </script>
+    <div id="sh" style="width: auto;height:400px;"></div>
+    <script type="text/javascript">
+        var dom = document.getElementById("sh");
+        var sh_myChart = echarts.init(dom, 'vintage');
+        var sh_app = {};
+        sh_option = null;
+        loadoption(sh_app, sh_myChart, "shanghai", sh_option)
+    </script>
+</div>
 </body>
 
 </html>

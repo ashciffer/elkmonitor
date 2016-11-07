@@ -112,6 +112,7 @@
             data: {"type": "taobao", "sync": true},
             dataType: "json", //类型为数组
             success: function (result) {
+                console.log(result)
                 for (i in result) {
                     ts_d = result[i].value
                     for (k in ts_d) {

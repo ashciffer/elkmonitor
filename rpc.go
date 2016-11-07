@@ -120,14 +120,14 @@ func  RpcData(flag bool,uri,start ,end string)(lasttime string,rr []RpcResult){
 	buckets := d["aggregations"].(map[string]interface{})["status"].(map[string]interface{})["buckets"].([]interface{})
 	if len(buckets) <=0 {
             rr = append(rr,RpcResult{
-		    Key:"total",
+		    Key:"成功",
 		    Count:0.0,
 	    })
 	}else{
 		for _,v := range  buckets{
 			s.Key = v.(map[string]interface{})["key"].(string)
 			if s.Key == ""{
-				s.Key = "total"
+				s.Key = "成功"
 			}
 			s.Count = v.(map[string]interface{})["doc_count"].(float64)
 			rr =append(rr,s)
