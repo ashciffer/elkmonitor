@@ -13,30 +13,29 @@ function GetValueFromArray(s, k) {
 }
 
 function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
-    console.log(key_array)
+
     $.ajax({
         type: "post",
         async: true,
         url: "/rpc/historydata",
-        data: {"type": text, "sync": flag},
+        data: { "type": text, "sync": flag },
         dataType: "json", //类型为数组
-        success: function (result) {
+        success: function(result) {
             for (i in result) {
                 ts_d = result[i].value
                 for (k in ts_d) {
-                    console.log(ts_d[k])
                     if (!key_map.has(ts_d[k].key)) {
                         key_map.set(ts_d[k].key, ts_d[k].key)
                     }
                 }
 
             }
-            console.log(key_map)
-            key_map.forEach(function (item, key) {
+
+            key_map.forEach(function(item, key) {
                 key_array.push(key)
             })
             var ti = null;
-            switch (text+flag) {
+            switch (text + flag) {
                 case "rpctrue":
                     ti = "上海发货同步";
                     break;
@@ -85,7 +84,7 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
                 },
                 calculable: true,
                 xAxis: [{
-                    data: (function () {
+                    data: (function() {
                         var xaxis_data = [];
                         for (i in result) {
                             xaxis_data.unshift(result[i].time.split(" ")[1])
@@ -94,13 +93,13 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
                     })()
                 }],
                 yAxis: {},
-                series: (function () {
+                series: (function() {
                     var res = [];
                     for (i in key_array) {
                         res.push({
                             type: "line",
                             name: key_array[i],
-                            data: (function () {
+                            data: (function() {
                                 var series_data = [];
                                 for (n in result) {
                                     find = false;
@@ -127,13 +126,13 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
             mychart.hideLoading();
 
         },
-        error: function (errorMsg) {
+        error: function(errorMsg) {
             //请求失败时执行该函数
             mychart.showLoading()
 
         }
     })
-    app.timeTicket = setInterval(function () {
+    app.timeTicket = setInterval(function() {
         load_real_time(mychart, option, text, flag, key_map, key_array)
     }, 5000 * 12);
 }
@@ -145,30 +144,36 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
         type: "post",
         async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
         url: "/rpc/historydata",
-        data: {"type": text, "sync": flag},
+        data: { "type": text, "sync": flag },
         dataType: "json", //类型为数组
-        success: function (result) {
+        success: function(result) {
             if (result) {
                 old_time = option.xAxis[0].data.pop();
                 new_time = result[0].time.split(" ")[1]
+                console.log(result)
                 if (old_time != new_time) {
+                    option.xAxis[0].data.shift();
+                    option.xAxis[0].data.push(old_time);
                     option.xAxis[0].data.push(new_time);
-                    d = result.value
+                    d = result[0].value
+
                     for (k in d) {
                         if (!key_map.has(d[k].key)) {
                             key_map.set(d[k].key, d[k].key)
                             key_array.push(d[k].key)
                         }
                     }
-//TODO 少了某类型数据的处理方法
+                    //TODO 少了某类型数据的处理方法
                     for (r in key_array) {
                         find = false;
                         for (var i = 0; i < option.series.length; i++) {
                             gvfa = GetValueFromArray(d, key_array[r])
+
                             if (option.series[i].name == key_array[r]) {
                                 find = true
-                                option.series[i].data.shift();
+                                option.series[i].data.pop();
                                 option.series[i].data.push(gvfa);
+
                             }
                         }
 
@@ -183,7 +188,7 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
                             option.push(newob)
                         }
                     }
-
+                    console.log(option)
                     mychart.setOption(option);
                 } else {
                     option.xAxis[0].data.push(old_time)
@@ -192,7 +197,7 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
             }
 
         },
-        error: function (errorMsg) {
+        error: function(errorMsg) {
             //请求失败时执行该函数
             alert("历史数据处理失败!");
 

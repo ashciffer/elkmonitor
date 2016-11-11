@@ -7,28 +7,28 @@ import (
 	"os"
 	"time"
 
-	"net/http"
 	"html/template"
+	"net/http"
 
 	"git.ishopex.cn/matrix/gatling/lib"
 	"github.com/robfig/cron"
 )
 
 var (
-	AKey = "matrix"
-	Secret = "i3jc810dkm4"
-	OrderURL = "http://elastic-jst.ishopex.cn/cloud_order-*/_search"
-	shanghaiURL = "http://elastic-sh.ishopex.cn/cloud_order-*/_search"
-	TaobaoRpcURL = "http://elastic-jst.ishopex.cn/rpc_log-*/_search"
+	AKey            = "matrix"
+	Secret          = "i3jc810dkm4"
+	OrderURL        = "http://elastic-jst.ishopex.cn/cloud_order-*/_search"
+	shanghaiURL     = "http://elastic-sh.ishopex.cn/cloud_order-*/_search"
+	TaobaoRpcURL    = "http://elastic-jst.ishopex.cn/rpc_log-*/_search"
 	OterPlatformURL = "http://elastic-sh.ishopex.cn/rpc_log-*/_search"
-	Method = "store.logistics.offline.send"
-	Url = flag.String("mgo", "localhost:27017", "mgourl like : 127.0.0.1:27017")
-	DB = flag.String("db", "elk", "mgo db name")
-	Collection = flag.String("c", "record", "mgo collection")
-	l = flag.String("log", "running.log", "logfile")
-	spec = flag.String("cron", "@every 5m", "cron spec")
-	FORMATTIME = "2006-01-02T15:04:05.000Z"
-	STANDARDTIEM = "2006-01-02 15:04:05"
+	Method          = "store.logistics.offline.send"
+	Url             = flag.String("mgo", "localhost:27017", "mgourl like : 127.0.0.1:27017")
+	DB              = flag.String("db", "elk", "mgo db name")
+	Collection      = flag.String("c", "record", "mgo collection")
+	l               = flag.String("log", "running.log", "logfile")
+	spec            = flag.String("cron", "@every 5m", "cron spec")
+	FORMATTIME      = "2006-01-02T15:04:05.000Z"
+	STANDARDTIEM    = "2006-01-02 15:04:05"
 )
 
 var (
@@ -44,7 +44,7 @@ type Series struct {
 }
 
 type RpcSeries struct {
-	Time  string `json:"time"`
+	Time  string      `json:"time"`
 	Value []RpcResult `json:"value"`
 }
 
@@ -60,8 +60,8 @@ type Sec struct {
 }
 
 type RpcResult struct {
-	Key   string `json:"key"`
-	Count float64  `json:"doc_count"`
+	Key   string  `json:"key"`
+	Count float64 `json:"doc_count"`
 }
 
 //获取淘宝log信息
@@ -81,7 +81,7 @@ func TaoBaoLog(ty string) {
 
 	now := time.Now().UTC()
 
-	LastTime := time.Unix(now.Unix() - 5 * 60, 0).UTC().Format(FORMATTIME)
+	LastTime := time.Unix(now.Unix()-5*60, 0).UTC().Format(FORMATTIME)
 
 	var (
 		s Series
@@ -100,27 +100,27 @@ func Rpc(ty, flag string) {
 		return
 	}
 
-	c := ty+flag
+	c := ty + flag
 
 	switch c {
 	case "taobaotrue":
-		rpchandler(true,TaobaoRpcURL,c,&ta_lt)
+		rpchandler(true, TaobaoRpcURL, c, &ta_lt)
 	case "taobaofalse":
-		rpchandler(false,TaobaoRpcURL,c,&ts_lt)
+		rpchandler(false, TaobaoRpcURL, c, &ts_lt)
 	case "rpctrue":
-		rpchandler(true,OterPlatformURL,c,&ra_lt)
+		rpchandler(true, OterPlatformURL, c, &ra_lt)
 	case "rpcfalse":
-		rpchandler(false,OterPlatformURL,c,&rs_lt)
+		rpchandler(false, OterPlatformURL, c, &rs_lt)
 	default:
 		log.Printf("[Crash]ajax post data is vaild ")
 		return
 	}
 }
 
-func rpchandler(syncflag bool,uri ,col string,lasttime *string){
+func rpchandler(syncflag bool, uri, col string, lasttime *string) {
 	now := time.Now().UTC()
-	if *lasttime == ""{
-		*lasttime = time.Unix(now.Unix() - 5 * 60, 0).UTC().Format(FORMATTIME)
+	if *lasttime == "" {
+		*lasttime = time.Unix(now.Unix()-5*60, 0).UTC().Format(FORMATTIME)
 	}
 
 	t, rr := RpcData(syncflag, uri, *lasttime, now.Format(FORMATTIME))
@@ -129,11 +129,10 @@ func rpchandler(syncflag bool,uri ,col string,lasttime *string){
 
 	s.Time = time.Now().Format(STANDARDTIEM)
 	s.Value = rr
-        *lasttime = t
+	*lasttime = t
 
 	SaveResult(col, s) //保存数据
 }
-
 
 //跳转首页
 func index(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +196,6 @@ func rpca(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 
-
 //定时任务
 func Job() {
 	go TaoBaoLog("taobao")
@@ -251,13 +249,13 @@ func main() {
 	cronapp.AddFunc(*spec, Job)
 	cronapp.Start()
 
-	fw, err := os.OpenFile(*l, os.O_CREATE | os.O_RDWR, 0664)
+	fw, err := os.OpenFile(*l, os.O_CREATE|os.O_RDWR, 0664)
 	defer fw.Close()
 	if err != nil {
 		log.Printf("[ERROR]logfile open error:%s", err)
 		os.Exit(-1)
 	}
-	//log.SetOutput(fw)
+	log.SetOutput(fw)
 	log.SetFlags(log.Lshortfile | log.Ltime)
 	err = lib.StartMongo("mongodb://" + *Url + "/")
 	if err != nil {
