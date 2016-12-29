@@ -1,16 +1,16 @@
 package main
 
 import (
-	"log"
-	"time"
-	"strconv"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 //syncflag 为真 取同步数据
-func ComposeRpcLog(syncflag bool,start,end string) string {
+func ComposeRpcLog(syncflag bool, start, end string) string {
 	ti := time.Now().Unix()
 	mm := Sign_str(Secret, strconv.Itoa(int(ti)))
 	s := Sec{
@@ -43,7 +43,7 @@ func ComposeRpcLog(syncflag bool,start,end string) string {
 	if syncflag {
 		must1["match"].(map[string]string)["type"] = "sync_request"
 	}
-	must := []map[string]interface{}{must1,must2, must3}
+	must := []map[string]interface{}{must1, must2, must3}
 	query := map[string]interface{}{
 		"sort": map[string]interface{}{
 			"time": map[string]string{
@@ -52,17 +52,17 @@ func ComposeRpcLog(syncflag bool,start,end string) string {
 		},
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
-				"must":must,
+				"must": must,
 			},
 		},
 		"from": 0,
 		"size": 1,
-		"aggs":map[string]interface{}{
-			"status":map[string]interface{}{
-				"terms":map[string]interface{}{
-					"field":"status.raw",
-					"size":0,
-					"shard_size":0,
+		"aggs": map[string]interface{}{
+			"status": map[string]interface{}{
+				"terms": map[string]interface{}{
+					"field":      "status",
+					"size":       0,
+					"shard_size": 0,
 				},
 			},
 		},
@@ -79,23 +79,23 @@ func ComposeRpcLog(syncflag bool,start,end string) string {
 }
 
 //
-func  RpcData(flag bool,uri,start ,end string)(lasttime string,rr []RpcResult){
+func RpcData(flag bool, uri, start, end string) (lasttime string, rr []RpcResult) {
 	var (
-		d map[string]interface{}
-		err error
+		d    map[string]interface{}
+		err  error
 		resp *http.Response
-		b []byte
-		s RpcResult
+		b    []byte
+		s    RpcResult
 	)
 	lasttime = end
 	//捕捉panic
 	defer func() {
 		if rec := recover(); rec != nil {
-			log.Printf("[Crash]Rpc response error :%s",rec)
+			log.Printf("[Crash]Rpc response error :%s", rec)
 		}
 	}()
-	query := ComposeRpcLog(flag,start,end)
-         resp,err = Request(uri,"POST",query)
+	query := ComposeRpcLog(flag, start, end)
+	resp, err = Request(uri, "POST", query)
 	if err != nil {
 		log.Printf("[ERROR]Request is erorr:%s", err)
 		return
@@ -118,19 +118,19 @@ func  RpcData(flag bool,uri,start ,end string)(lasttime string,rr []RpcResult){
 	}
 
 	buckets := d["aggregations"].(map[string]interface{})["status"].(map[string]interface{})["buckets"].([]interface{})
-	if len(buckets) <=0 {
-            rr = append(rr,RpcResult{
-		    Key:"成功",
-		    Count:0.0,
-	    })
-	}else{
-		for _,v := range  buckets{
+	if len(buckets) <= 0 {
+		rr = append(rr, RpcResult{
+			Key:   "成功",
+			Count: 0.0,
+		})
+	} else {
+		for _, v := range buckets {
 			s.Key = v.(map[string]interface{})["key"].(string)
-			if s.Key == ""{
+			if s.Key == "" {
 				s.Key = "成功"
 			}
 			s.Count = v.(map[string]interface{})["doc_count"].(float64)
-			rr =append(rr,s)
+			rr = append(rr, s)
 		}
 	}
 

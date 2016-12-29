@@ -10,8 +10,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"git.ishopex.cn/matrix/gatling/lib"
 	"github.com/robfig/cron"
+	"gopkg.in/mgo.v2"
 )
 
 var (
@@ -22,9 +22,9 @@ var (
 	TaobaoRpcURL    = "http://elastic-jst.ishopex.cn/rpc_log-*/_search"
 	OterPlatformURL = "http://elastic-sh.ishopex.cn/rpc_log-*/_search"
 	Method          = "store.logistics.offline.send"
-	Url             = flag.String("mgo", "localhost:27017", "mgourl like : 127.0.0.1:27017")
+	Mgo             *mgo.Session
+	Url             = flag.String("mgo", "192.168.75.54:27017,192.168.75.54:27027,192.168.75.54:27037", "mgourl like : 127.0.0.1:27017")
 	DB              = flag.String("db", "elk", "mgo db name")
-	Collection      = flag.String("c", "record", "mgo collection")
 	l               = flag.String("log", "running.log", "logfile")
 	spec            = flag.String("cron", "@every 5m", "cron spec")
 	FORMATTIME      = "2006-01-02T15:04:05.000Z"
@@ -70,73 +70,76 @@ func TaoBaoLog(ty string) {
 		uri string
 	)
 
-	if ty == "" {
-		log.Printf("[Crash]ajax post data is invaild ")
-		return
-	} else if ty == "taobao" {
+	if ty == "taobao" {
 		uri = OrderURL
 	} else {
 		uri = shanghaiURL
 	}
 
-	now := time.Now().UTC()
-
-	LastTime := time.Unix(now.Unix()-5*60, 0).UTC().Format(FORMATTIME)
+	last_do_time, err := GetCronTime(ty)
+	if err != nil {
+		last_do_time = time.Unix(time.Now().UTC().Unix()-15*60, 0).UTC().Format(FORMATTIME)
+		SetCronTime(ty)
+	}
 
 	var (
 		s Series
 	)
 
-	s.Time = time.Now().Format("15:04:05")
-	_, value := ComposeRes(uri, LastTime, time.Now().UTC().Format(FORMATTIME))
+	s.Time = time.Now().Format(STANDARDTIEM)
+	t, value := ComposeRes(uri, last_do_time, time.Now().UTC().Format(FORMATTIME))
 	s.Value = value
+
+	err = ModiyLastDoTime(ty, t)
+	if err != nil {
+		log.Println("[Error]修改 %s 的最后修改时间失败：%s", ty, err)
+	}
 	SaveResult(ty, s) //保存查询数据{时间:""，data:[总数,失败数]}
 }
 
 //上海发货 数据分拣
-func Rpc(ty, flag string) {
-	if ty == "" || flag == "" {
-		log.Printf("[Crash]ajax post data is invaild ")
-		return
-	}
-
-	c := ty + flag
+func Rpc(c string) {
 
 	switch c {
 	case "taobaotrue":
-		rpchandler(true, TaobaoRpcURL, c, &ta_lt)
+		rpchandler(true, TaobaoRpcURL, c)
 	case "taobaofalse":
-		rpchandler(false, TaobaoRpcURL, c, &ts_lt)
+		rpchandler(false, TaobaoRpcURL, c)
 	case "rpctrue":
-		rpchandler(true, OterPlatformURL, c, &ra_lt)
+		rpchandler(true, OterPlatformURL, c)
 	case "rpcfalse":
-		rpchandler(false, OterPlatformURL, c, &rs_lt)
+		rpchandler(false, OterPlatformURL, c)
 	default:
 		log.Printf("[Crash]ajax post data is vaild ")
 		return
 	}
 }
 
-func rpchandler(syncflag bool, uri, col string, lasttime *string) {
+func rpchandler(syncflag bool, uri, col string) {
 	now := time.Now().UTC()
-	if *lasttime == "" {
-		*lasttime = time.Unix(now.Unix()-5*60, 0).UTC().Format(FORMATTIME)
+	last_do_time, err := GetCronTime(col)
+	if err != nil {
+		last_do_time = time.Unix(time.Now().UTC().Unix()-15*60, 0).UTC().Format(FORMATTIME)
+		SetCronTime(col)
 	}
 
-	t, rr := RpcData(syncflag, uri, *lasttime, now.Format(FORMATTIME))
+	t, rr := RpcData(syncflag, uri, last_do_time, now.Format(FORMATTIME))
 
 	var s RpcSeries
 
 	s.Time = time.Now().Format(STANDARDTIEM)
 	s.Value = rr
-	*lasttime = t
+	err = ModiyLastDoTime(col, t)
+	if err != nil {
+		log.Println("[Error]修改 %s 的最后修改时间失败：%s", col, err)
+	}
 
 	SaveResult(col, s) //保存数据
 }
 
 //跳转首页
 func index(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("index.html")
+	t, err := template.ParseFiles("static/pages/index.html")
 	if err != nil {
 		log.Printf("[ERROR]加载主页面出错:%s", err)
 	}
@@ -145,7 +148,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func Platform(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("platform.html")
+	t, err := template.ParseFiles("static/pages/platform.html")
 	if err != nil {
 		log.Printf("[ERROR]加载其他平台页面出错:%s", err)
 	}
@@ -155,7 +158,7 @@ func Platform(w http.ResponseWriter, r *http.Request) {
 
 //
 func Total(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("test.html")
+	t, err := template.ParseFiles("static/pages/test.html")
 	if err != nil {
 		log.Printf("[ERROR]加载rpc页面出错:%s", err)
 	}
@@ -163,7 +166,7 @@ func Total(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 func taobaos(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("taobaosync.html")
+	t, err := template.ParseFiles("static/pages/taobaosync.html")
 	if err != nil {
 		log.Printf("[ERROR]加载taobaosync页面出错:%s", err)
 	}
@@ -171,7 +174,7 @@ func taobaos(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 func taobaoa(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("taobaoasync.html")
+	t, err := template.ParseFiles("static/pages/taobaoasync.html")
 	if err != nil {
 		log.Printf("[ERROR]加载taobaoaysnc页面出错:%s", err)
 	}
@@ -179,7 +182,7 @@ func taobaoa(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 func rpcs(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("rpcsync.html")
+	t, err := template.ParseFiles("static/pages/rpcsync.html")
 	if err != nil {
 		log.Printf("[ERROR]加载rpcs页面出错:%s", err)
 	}
@@ -188,7 +191,7 @@ func rpcs(w http.ResponseWriter, r *http.Request) {
 }
 
 func rpca(w http.ResponseWriter, r *http.Request) {
-	t, err := template.ParseFiles("rpcasync.html")
+	t, err := template.ParseFiles("static/pages/rpcasync.html")
 	if err != nil {
 		log.Printf("[ERROR]加载rpc页面出错:%s", err)
 	}
@@ -200,10 +203,10 @@ func rpca(w http.ResponseWriter, r *http.Request) {
 func Job() {
 	go TaoBaoLog("taobao")
 	go TaoBaoLog("shanghai")
-	go Rpc("taobao", "true")
-	go Rpc("taobao", "false")
-	go Rpc("rpc", "true")
-	go Rpc("rpc", "false")
+	go Rpc("taobaotrue")
+	go Rpc("taobaofalse")
+	go Rpc("rpctrue")
+	go Rpc("rpcfalse")
 }
 
 //从mongodb中获取之前存储的数据
@@ -255,15 +258,15 @@ func main() {
 		log.Printf("[ERROR]logfile open error:%s", err)
 		os.Exit(-1)
 	}
-	log.SetOutput(fw)
-	log.SetFlags(log.Lshortfile | log.Ltime)
-	err = lib.StartMongo("mongodb://" + *Url + "/")
+	//log.SetOutput(fw)
+	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
+	Mgo, err = mgo.Dial("mongodb://" + *Url + "/")
 	if err != nil {
 		os.Exit(-1)
 	}
+
 	log.Println("[INFO]START.........................")
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	//http.HandleFunc("/elk_monitor/taobao", TaoBaoLog)
 	http.HandleFunc("/elk_monitor/historydata", historydata)
 	http.HandleFunc("/index", index)
 	http.HandleFunc("/taobaosync", taobaos)
@@ -274,5 +277,8 @@ func main() {
 	//http.HandleFunc("/rpc/realtime", Rpc)
 	http.HandleFunc("/total", Total)
 	http.HandleFunc("/rpc/historydata", rpchistorydata)
-	http.ListenAndServe(":8889", nil)
+	err = http.ListenAndServe(":8889", nil)
+	if err != nil {
+		log.Println("httpserver can't establish ： %s ", err)
+	}
 }

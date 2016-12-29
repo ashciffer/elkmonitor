@@ -7,7 +7,9 @@ function loadoption(app, myChart, text, option) {
         type: "post",
         async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
         url: "/elk_monitor/historydata", //请求发送到TestServlet处
-        data: {"type": text},
+        data: {
+            "type": text
+        },
         dataType: "json", //类型为数组
         success: function (result) {
             if (result) {
@@ -23,8 +25,13 @@ function loadoption(app, myChart, text, option) {
                         data: ["总数", "失败数"]
                     },
                     xAxis: [{
-                        type: 'category',
-                        boundaryGap: true,
+                        // type: 'category',
+                        // boundaryGap: true,
+                        axisLabel: {
+                            formatter: function (val) {
+                                return val.split(" ").join("\n");
+                            },
+                        },
                         data: (function () {
                             var res = [];
                             for (i in result) {
@@ -128,27 +135,29 @@ function loadoption(app, myChart, text, option) {
         }
     });
     app.timeTicket = setInterval(function () {
-       realtimeajax(myChart,option,text)
-    }, 5000 *12 );
-    ;
+        realtimeajax(myChart, option, text)
+    }, 5000 * 12);;
 
     //取实时数据
 }
 
 
-function realtimeajax(myChart,option,text) {
+function realtimeajax(myChart, option, text) {
     $.ajax({
         type: "post",
-        async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
-        url: "/elk_monitor/historydata", //请求发送到TestServlet处
-        data: {"type":text},
+        async: true,
+        url: "/elk_monitor/historydata",
+        data: {
+            "type": text
+        },
         dataType: "json", //返回数据形式为json
         success: function (result) {
             if (result) {
                 old_time = option.xAxis[0].data.pop();
-                if (old_time != result[11].time){
-                    console.log(result[11].time == old_time)
-                    option.xAxis[0].data.push(result[11].time);
+                if (old_time != result[11].time) {
+                    option.xAxis[0].data.push(old_time) //将较新的时间写入
+                    option.xAxis[0].data.shift() //弹出最老的时间
+                    option.xAxis[0].data.push(result[11].time); //写入最新的时间
                     var data0 = option.series[0].data;
                     var data1 = option.series[1].data;
                     data1.shift();
@@ -156,7 +165,7 @@ function realtimeajax(myChart,option,text) {
                     data0.shift();
                     data0.push(result[11].value[1]);
                     myChart.setOption(option);
-                }else {
+                } else {
                     option.xAxis[0].data.push(old_time)
                 }
             }

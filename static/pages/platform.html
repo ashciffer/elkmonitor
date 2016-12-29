@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Monitor</title>
+    <link rel="stylesheet" href="static/css/jquery-labelauty.css">
+    <style>
+        ul {
+            list-style-type: none;
+        }
+        
+        li {
+            display: inline-block;
+        }
+        
+        li {
+            margin: 10px 0;
+        }
+        
+        input.labelauty+label {
+            font: 12px "Microsoft Yahei";
+        }
+    </style>
+</head>
+
+<body>
+    <center>
+        <h1>监测页面</h1>
+        <ul class="doweb">
+            <li><input type="radio" name="radio" onclick="total()" data-labelauty="rpc数据总和"></li>
+            <li><input type="radio" name="radio" onclick="index()" data-labelauty="订单"></li>
+            <li><input type="radio" name="radio1" onclick="taobao(0)" data-labelauty="淘宝发货同步"></li>
+            <li><input type="radio" name="radio1" onclick="taobao(1)" data-labelauty="淘宝发货异步"></li>
+            <li><input type="radio" name="radio1" onclick="sh(0)" data-labelauty="上海发货同步 "></li>
+            <li><input type="radio" name="radio1" onclick="sh(1)" data-labelauty="上海发货异步"></li>
+        </ul>
+        <hr>
+        <script src="static/js/jquery-1.8.3.min.js"></script>
+        <script src="static/js/jquery-labelauty.js"></script>
+        <script type="text/javascript">
+            $(':input').labelauty();
+
+            function taobao(k) {
+                if (k == 0) {
+                    window.open("/taobaosync")
+                } else {
+                    window.open("/taobaoasync")
+                }
+
+            }
+
+            function sh(k) {
+                if (k == 0) {
+                    window.open("/rpcsync")
+                } else {
+                    window.open("/rpcasync")
+                }
+            }
+
+            function index() {
+                window.open("/index")
+            }
+
+            function total() {
+                // window.location.href("./test.html")
+                window.open("/total")
+            }
+        </script>
+    </center>
+</body>
+
+</html>

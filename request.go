@@ -10,10 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"git.ishopex.cn/matrix/gatling/lib"
 )
-
 
 //请求
 func Request(url string, method, params string) (*http.Response, error) {
@@ -38,6 +35,7 @@ func GetTotalAndTime(data []byte) (time string, total float64, err error) {
 		d map[string]interface{}
 	)
 
+	//hits 切片为空时会抛出数组越界panic
 	defer func(err *error, t float64, ti string) {
 		if rec := recover(); rec != nil {
 			*err = errors.New(fmt.Sprintf("%s", rec))
@@ -140,10 +138,10 @@ func GetTotal(uri string, f bool, start, end string) (string, float64) {
 	return t, value
 }
 
-
 //保存数据
 func SaveResult(col string, e interface{}) {
-	m := lib.Mongo.Clone()
+	m := Mgo.Clone()
+	defer m.Close()
 	err := m.DB(*DB).C(col).Insert(e)
 	if err != nil {
 		log.Printf("[ERROR]数据保存出错:%s", err)
@@ -153,26 +151,26 @@ func SaveResult(col string, e interface{}) {
 //取数据query()
 func QueryData(col string) ([]Series, error) {
 	e := []Series{}
-	m := lib.Mongo.Clone()
-	defer  m.Close()
+	m := Mgo.Clone()
+	defer m.Close()
 	err := m.DB(*DB).C(col).Find(nil).Sort("-_id").Limit(12).All(&e)
 	var k int
 	var succ []Series
-	var Re   []Series
+	var Re []Series
 	for _, v := range e {
 		if v.Value != nil {
 			succ = append(succ, v)
 		}
 	}
 
-	for i := 0;i<(12-len(succ));i++{
-		tmp := Series{Time:"00:00:"+strconv.Itoa(k),Value:[]float64{0,0}}
-		Re = append(Re,tmp)
+	for i := 0; i < (12 - len(succ)); i++ {
+		tmp := Series{Time: "00:00:" + strconv.Itoa(k), Value: []float64{0, 0}}
+		Re = append(Re, tmp)
 		k++
 	}
 
 	for n := len(succ); n > 0; n-- {
-		Re = append(Re, succ[n - 1])
+		Re = append(Re, succ[n-1])
 	}
 	return Re, err
 }
@@ -180,26 +178,26 @@ func QueryData(col string) ([]Series, error) {
 func QueryRpcData(col string) ([]RpcSeries, error) {
 	e := []RpcSeries{}
 	var re []RpcSeries
-
-	m := lib.Mongo.Clone()
-	defer  m.Close()
-	err := m.DB(*DB).C(col).Find(nil).Limit(12).Sort("-_id").All(&e)
 	var succ []RpcSeries
+
+	m := Mgo.Clone()
+	defer m.Close()
+	err := m.DB(*DB).C(col).Find(nil).Limit(12).Sort("-_id").All(&e)
 	for _, v := range e {
 		if v.Value != nil {
 			succ = append(succ, v)
 		}
 	}
-	re =append(re,succ...)
+	re = append(re, succ...)
 
 	tmp_result := RpcResult{
-		Key:"成功",
-		Count:0,
+		Key:   "成功",
+		Count: 0,
 	}
 
-	for i := (12-len(succ));i>0;i--{
-		tmp := RpcSeries{Time:"2006 00:00:"+strconv.Itoa(i),Value:[]RpcResult{tmp_result}}
-		re = append(re,tmp)
+	for i := (12 - len(succ)); i > 0; i-- {
+		tmp := RpcSeries{Time: "2006-01-02 00:00:" + strconv.Itoa(i), Value: []RpcResult{tmp_result}}
+		re = append(re, tmp)
 	}
 	return re, err
 }
@@ -212,5 +210,3 @@ func ComposeRes(uri, start, end string) (last_time string, res []float64) {
 	res = append(res, total, fail)
 	return
 }
-
-

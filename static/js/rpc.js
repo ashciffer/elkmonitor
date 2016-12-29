@@ -18,9 +18,12 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
         type: "post",
         async: true,
         url: "/rpc/historydata",
-        data: { "type": text, "sync": flag },
+        data: {
+            "type": text,
+            "sync": flag
+        },
         dataType: "json", //类型为数组
-        success: function(result) {
+        success: function (result) {
             for (i in result) {
                 ts_d = result[i].value
                 for (k in ts_d) {
@@ -31,7 +34,8 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
 
             }
 
-            key_map.forEach(function(item, key) {
+            key_map.forEach(function (item, key) {
+                key = key.substring(0, 10)
                 key_array.push(key)
             })
             var ti = null;
@@ -84,22 +88,28 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
                 },
                 calculable: true,
                 xAxis: [{
-                    data: (function() {
+                    axisLabel: {
+                        formatter: function (val) {
+                            return val.split(" ").join("\n");
+                        },
+                    },
+                    data: (function () {
                         var xaxis_data = [];
                         for (i in result) {
-                            xaxis_data.unshift(result[i].time.split(" ")[1])
+                            // xaxis_data.unshift(result[i].time.split(" ")[1])
+                            xaxis_data.unshift(result[i].time)
                         }
                         return xaxis_data;
                     })()
                 }],
                 yAxis: {},
-                series: (function() {
+                series: (function () {
                     var res = [];
                     for (i in key_array) {
                         res.push({
                             type: "line",
                             name: key_array[i],
-                            data: (function() {
+                            data: (function () {
                                 var series_data = [];
                                 for (n in result) {
                                     find = false;
@@ -126,13 +136,14 @@ function loadrpclog(app, mychart, option, text, flag, key_map, key_array) {
             mychart.hideLoading();
 
         },
-        error: function(errorMsg) {
+        error: function (errorMsg) {
             //请求失败时执行该函数
+            console.log(errorMsg)
             mychart.showLoading()
 
         }
     })
-    app.timeTicket = setInterval(function() {
+    app.timeTicket = setInterval(function () {
         load_real_time(mychart, option, text, flag, key_map, key_array)
     }, 5000 * 12);
 }
@@ -142,15 +153,18 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
 
     $.ajax({
         type: "post",
-        async: true, //异步请求（同步请求将会锁住浏览器，用户其他操作必须等待请求完成才可以执行）
+        async: true,
         url: "/rpc/historydata",
-        data: { "type": text, "sync": flag },
-        dataType: "json", //类型为数组
-        success: function(result) {
+        data: {
+            "type": text,
+            "sync": flag
+        },
+        dataType: "json",
+        success: function (result) {
             if (result) {
                 old_time = option.xAxis[0].data.pop();
-                new_time = result[0].time.split(" ")[1]
-                console.log(result)
+                //new_time = result[0].time.split(" ")[1]
+                new_time = result[0].time
                 if (old_time != new_time) {
                     option.xAxis[0].data.shift();
                     option.xAxis[0].data.push(old_time);
@@ -160,7 +174,7 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
                     for (k in d) {
                         if (!key_map.has(d[k].key)) {
                             key_map.set(d[k].key, d[k].key)
-                            key_array.push(d[k].key)
+                            key_array.push(d[k].key.substring(0, 10))
                         }
                     }
                     //TODO 少了某类型数据的处理方法
@@ -179,7 +193,7 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
 
                         //增加一个新的线条
                         if (!find) {
-                            option.legend.push(key_array[r])
+                            option.legend.data.push(key_array[r])
                             newob = {
                                 type: "line",
                                 name: rel_key_array[r],
@@ -188,7 +202,6 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
                             option.push(newob)
                         }
                     }
-                    console.log(option)
                     mychart.setOption(option);
                 } else {
                     option.xAxis[0].data.push(old_time)
@@ -197,7 +210,7 @@ function load_real_time(mychart, option, text, flag, key_map, key_array) {
             }
 
         },
-        error: function(errorMsg) {
+        error: function (errorMsg) {
             //请求失败时执行该函数
             alert("历史数据处理失败!");
 
