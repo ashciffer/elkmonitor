@@ -59,7 +59,7 @@ func ModiyLastDoTime(_type, t string) error {
 
 	session := Mgo.Clone()
 	defer func() {
-		session.Clone()
+		session.Close()
 	}()
 
 	change := bson.M{"$set": bson.M{"last_do_time": t, "modifytime": time.Now().Unix()}}

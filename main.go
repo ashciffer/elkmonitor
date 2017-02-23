@@ -15,12 +15,12 @@ import (
 )
 
 var (
-	AKey            = "matrix"
-	Secret          = "i3jc810dkm4"
-	OrderURL        = "http://elastic-jst.ishopex.cn/cloud_order-*/_search"
-	shanghaiURL     = "http://elastic-sh.ishopex.cn/cloud_order-*/_search"
-	TaobaoRpcURL    = "http://elastic-jst.ishopex.cn/rpc_log-*/_search"
-	OterPlatformURL = "http://elastic-sh.ishopex.cn/rpc_log-*/_search"
+	AKey            = "****"
+	Secret          = "*****"
+	OrderURL        = "*"
+	shanghaiURL     = "*"
+	TaobaoRpcURL    = "*"
+	OterPlatformURL = "*"
 	Method          = "store.logistics.offline.send"
 	Mgo             *mgo.Session
 	Url             = flag.String("mgo", "192.168.75.54:27017,192.168.75.54:27027,192.168.75.54:27037", "mgourl like : 127.0.0.1:27017")
